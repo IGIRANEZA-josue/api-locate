@@ -1,0 +1,342 @@
+{
+  "info": {
+    "name": "API Locate — Full REST API Collection",
+    "_postman_id": "7f3c8e2a-91d4-4b28-a119-apilocate2026",
+    "description": "Complete Postman collection for API Locate (Discover APIs. Organize Resources. Build More.).\n\nIncludes:\n1. Authentication & Profile\n2. API Discovery, FULLTEXT Search, Categories & Tags\n3. Community API Submissions & SSRF-Safe Live Endpoint Check\n4. Developer Organization (Favorites Quota, Premium Collections, Premium Comparison)\n5. Subscriptions & Verified Webhook Billing\n6. Provider Profiles & Sponsored API Campaigns\n7. Reviews, Issue Reports & Notifications\n8. Administrator Moderation, Plans, Imports & Analytics",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "paymentReference", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Health & Authentication",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        },
+        {
+          "name": "Register Developer Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"postman_builder\",\n  \"email\": \"postman@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"full_name\": \"Postman Developer\",\n  \"theme_preference\": \"system\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login (Developer Seed Account)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) { pm.collectionVariables.set('token', res.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"premium@apilocate.dev\",\n  \"password\": \"Developer123!\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Login (Administrator Seed Account)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) { pm.collectionVariables.set('adminToken', res.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"admin@apilocate.dev\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Get Current User (/auth/me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Update Profile & Theme Preference",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Premium Developer\",\n  \"bio\": \"Full-stack API builder\",\n  \"theme_preference\": \"dark\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. API Discovery, Search & Details",
+      "item": [
+        {
+          "name": "Search & Filter APIs (FULLTEXT + Filters)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/apis?q=payment&pricing_model=freemium&sort=relevant",
+              "host": ["{{baseUrl}}"],
+              "path": ["apis"],
+              "query": [
+                { "key": "q", "value": "payment" },
+                { "key": "pricing_model", "value": "freemium" },
+                { "key": "sort", "value": "relevant" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Homepage Discovery Feed",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/apis/home"
+          }
+        },
+        {
+          "name": "Get API Details by Slug",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/apis/kigalipay-mobile-money-api"
+          }
+        },
+        {
+          "name": "SSRF-Protected Live Reachability Check",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/apis/3/check-status"
+          }
+        },
+        {
+          "name": "Submit Community API (Enters Pending Queue)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rwanda GeoNames Lookup API\",\n  \"category_id\": 9,\n  \"provider_name\": \"EastAfrica Geo\",\n  \"short_description\": \"Administrative boundaries, provinces, districts, and sectors lookup API.\",\n  \"full_description\": \"REST API returning GeoJSON and structured administrative hierarchy data.\",\n  \"base_url\": \"https://api.github.com\",\n  \"docs_url\": \"https://docs.github.com/en/rest\",\n  \"auth_type\": \"api_key\",\n  \"pricing_model\": \"free\",\n  \"tags\": [\"rest\", \"json\", \"geospatial\"],\n  \"endpoints\": [\n    {\n      \"http_method\": \"GET\",\n      \"endpoint_path\": \"/v1/provinces\",\n      \"summary\": \"List all provinces\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/apis"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Developer Organization (Favorites, Collections, Compare)",
+      "item": [
+        {
+          "name": "List User Favorites & Quota",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/favorites"
+          }
+        },
+        {
+          "name": "Add API to Favorites",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"api_id\": 5\n}" },
+            "url": "{{baseUrl}}/favorites"
+          }
+        },
+        {
+          "name": "List Collections (Premium Only)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/collections"
+          }
+        },
+        {
+          "name": "Create Collection (Premium Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"SaaS Starter Kit\",\n  \"description\": \"Authentication, email, and billing APIs for new SaaS apps.\"\n}"
+            },
+            "url": "{{baseUrl}}/collections"
+          }
+        },
+        {
+          "name": "Compare APIs Side-by-Side (Premium Only)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/compare?ids=1,2,3"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Subscriptions & Payment Verification",
+      "item": [
+        {
+          "name": "Get Public Subscription Plans",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/subscriptions/plans"
+          }
+        },
+        {
+          "name": "Create Subscription Checkout Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.checkout && res.checkout.payment_reference) {",
+                  "  pm.collectionVariables.set('paymentReference', res.checkout.payment_reference);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_code\": \"premium_monthly\",\n  \"provider\": \"sandbox_gateway\",\n  \"payment_method\": \"card\"\n}"
+            },
+            "url": "{{baseUrl}}/subscriptions/checkout"
+          }
+        },
+        {
+          "name": "List My Payment History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/payments/my"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Providers & Sponsored Campaigns",
+      "item": [
+        {
+          "name": "List Advertising Packages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/campaigns/packages"
+          }
+        },
+        {
+          "name": "Get Public Provider Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/providers/kigalipay-cloud-labs"
+          }
+        },
+        {
+          "name": "Record Campaign Impression/Click",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_type\": \"impression\",\n  \"placement_surface\": \"homepage\"\n}"
+            },
+            "url": "{{baseUrl}}/campaigns/1/events"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Administrator Operations (Requires Admin Token)",
+      "item": [
+        {
+          "name": "Get Admin Analytics Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/dashboard"
+          }
+        },
+        {
+          "name": "List Pending API Submissions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/apis/pending"
+          }
+        },
+        {
+          "name": "List Permitted Import Sources",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/api-sources"
+          }
+        },
+        {
+          "name": "Trigger Permitted Public API Import Job",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/admin/api-sources/2/import"
+          }
+        }
+      ]
+    }
+  ]
+}
