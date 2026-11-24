@@ -9,6 +9,40 @@
     </div>
 
     <template v-else-if="api">
+      <section v-if="api.is_directory_preview || api.is_demo" class="simple-api-detail">
+        <router-link to="/explore" class="simple-api-back">← Back to APIs</router-link>
+        <article class="card simple-api-card">
+          <div class="flex-row simple-api-labels">
+            <span class="badge badge-free">{{ PRICING_LABELS[api.pricing_model] || 'Free' }}</span>
+            <span class="badge badge-neutral">{{ AUTH_LABELS[api.auth_type] || 'No authentication' }}</span>
+            <span v-if="api.category_name" class="badge badge-neutral">{{ api.category_name }}</span>
+          </div>
+          <p class="eyebrow simple-api-provider">{{ api.provider_name || api.provider_company_name }}</p>
+          <h1 class="simple-api-title">{{ api.name }}</h1>
+          <p class="simple-api-description">{{ api.short_description }}</p>
+          <p v-if="api.full_description" class="simple-api-full-description">{{ api.full_description }}</p>
+
+          <div v-if="api.base_url" class="simple-api-info-row">
+            <strong>Base URL</strong>
+            <code>{{ api.base_url }}</code>
+          </div>
+          <div v-if="api.endpoints?.length" class="simple-api-info-row">
+            <strong>Example</strong>
+            <code>{{ api.endpoints[0].http_method }} {{ api.endpoints[0].path }}</code>
+          </div>
+
+          <div class="simple-api-actions">
+            <a :href="api.docs_url" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+              Official documentation ↗
+            </a>
+            <a v-if="api.website_url" :href="api.website_url" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+              Provider website
+            </a>
+          </div>
+        </article>
+      </section>
+
+      <template v-else>
       <!-- Top Breadcrumb -->
       <div v-if="api.is_demo" class="alert alert-info" role="status">
         This is a local free-API preview listing. It links to the provider’s official docs; favorites, reviews, and other saved actions need the API Locate backend.
@@ -439,6 +473,7 @@
         :api="api"
         @close="showReportModal = false"
       />
+      </template>
     </template>
   </div>
 </template>
@@ -515,18 +550,22 @@ const canEdit = computed(() => {
 async function loadApiDetails() {
   const previewApi = findFreeApi(route.params.slug);
   logoError.value = false;
-  api.value = previewApi;
-  reviews.value = [];
   errorMsg.value = '';
-  loading.value = !previewApi;
+  reviews.value = [];
+  if (previewApi) {
+    api.value = previewApi;
+    loading.value = false;
+    return;
+  }
+
+  api.value = null;
+  loading.value = true;
   try {
-    const { data } = await http.get(`/apis/${route.params.slug}`);
-    if (data.api) {
-      api.value = data.api;
-      reviews.value = data.api.reviews || [];
-    }
+    const { data } = await http.get(`/apis/${route.params.slug}`, { timeout: 3000 });
+    api.value = data.api;
+    reviews.value = data.api.reviews || [];
   } catch (err) {
-    if (!previewApi) errorMsg.value = extractErrorMessage(err, 'API listing could not be loaded.');
+    errorMsg.value = extractErrorMessage(err, 'API listing could not be loaded.');
   } finally {
     loading.value = false;
   }
@@ -613,6 +652,71 @@ onMounted(loadApiDetails);
 </script>
 
 <style scoped>
+.simple-api-detail {
+  width: min(100%, 760px);
+  margin: 0 auto;
+}
+
+.simple-api-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.simple-api-card {
+  padding: clamp(1.1rem, 4vw, 2rem);
+}
+
+.simple-api-labels {
+  margin-bottom: 1rem;
+}
+
+.simple-api-provider {
+  margin: 0 0 0.35rem;
+}
+
+.simple-api-title {
+  font-size: clamp(1.65rem, 5vw, 2.3rem);
+  overflow-wrap: anywhere;
+}
+
+.simple-api-description {
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.simple-api-full-description {
+  margin-top: 0.8rem;
+  white-space: pre-line;
+}
+
+.simple-api-info-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.simple-api-info-row code {
+  overflow-wrap: anywhere;
+}
+
+.simple-api-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.2rem;
+}
+
+@media (max-width: 480px) {
+  .simple-api-info-row { grid-template-columns: 1fr; gap: 0.25rem; }
+  .simple-api-actions > * { width: 100%; }
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;

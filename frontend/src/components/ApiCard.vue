@@ -28,7 +28,7 @@
         <div class="api-title-wrap">
           <div class="api-title-line">
             <h3 class="api-name">
-              <router-link :to="`/apis/${api.slug}`" @click="recordSponsoredClick">
+              <router-link :to="`/apis/${api.slug}`" @click="handleApiOpen">
                 <span>{{ api.name }}</span>
                 <AppIcon name="arrow-up-right" :size="13" class="title-arrow" />
               </router-link>
@@ -119,7 +119,7 @@
         <router-link
           :to="`/apis/${api.slug}`"
           class="btn btn-secondary btn-sm"
-          @click="recordSponsoredClick"
+          @click="handleApiOpen"
         >
           {{ api.is_sponsored && api.cta_label ? api.cta_label : 'View spec' }}
         </router-link>
@@ -134,6 +134,7 @@ import { useRouter } from 'vue-router';
 import http from '../api/http';
 import { useWorkspaceStore } from '../stores/workspaceStore';
 import AppIcon from './AppIcon.vue';
+import { cacheApiListing } from '../data/freeApiCatalog';
 import {
   AUTH_LABELS,
   PRICING_LABELS,
@@ -205,6 +206,11 @@ async function onFavoriteClick() {
   } else if (res && typeof res.favorited === 'boolean') {
     props.api.is_favorited = res.favorited;
   }
+}
+
+function handleApiOpen() {
+  cacheApiListing(props.api);
+  recordSponsoredClick();
 }
 
 function recordSponsoredClick() {
