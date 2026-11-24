@@ -15,10 +15,12 @@
       <div class="api-identity">
         <div class="api-logo-box">
           <img
-            v-if="api.logo_url && !imgFailed"
-            :src="api.logo_url"
-            :alt="api.name"
-            @error="imgFailed = true"
+            v-if="logoIndex < logoCandidates.length"
+            :src="logoCandidates[logoIndex]"
+            :alt="`${api.provider_name || api.name} logo`"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            @error="advanceLogo"
           />
           <span v-else class="api-initials">{{ getInitials(api.name) }}</span>
         </div>
@@ -124,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import http from '../api/http';
 import { useWorkspaceStore } from '../stores/workspaceStore';
@@ -149,7 +151,34 @@ const props = defineProps({
 
 const router = useRouter();
 const workspace = useWorkspaceStore();
-const imgFailed = ref(false);
+const logoIndex = ref(0);
+
+function websiteOrigin(value) {
+  if (!value) return '';
+  try {
+    const url = new URL(value.includes('://') ? value : `https://${value}`);
+    return url.hostname.replace(/^www\./, '');
+  } catch (_) {
+    return '';
+  }
+}
+
+const logoCandidates = computed(() => {
+  const explicit = [props.api.logo_url, props.api.provider_logo_url].filter(Boolean);
+  const companyHost = websiteOrigin(
+    props.api.provider_website_url || props.api.base_url || props.api.docs_url
+  );
+  if (companyHost) {
+    explicit.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(companyHost)}&sz=128`);
+  }
+  return [...new Set(explicit)];
+});
+
+function advanceLogo() {
+  if (logoIndex.value < logoCandidates.value.length) logoIndex.value += 1;
+}
+
+watch(logoCandidates, () => { logoIndex.value = 0; });
 
 const isFavorited = computed(
   () => workspace.favoriteIdSet.has(props.api.id) || Boolean(props.api.is_favorited)

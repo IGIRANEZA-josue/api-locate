@@ -104,7 +104,9 @@ const getHomepageData = asyncHandler(async (req, res) => {
     ),
     pool.query(
       `SELECT a.*, c.name AS category_name, c.slug AS category_slug,
-              pp.slug AS provider_slug, pp.verification_status AS provider_verification_status
+              pp.slug AS provider_slug, pp.logo_url AS provider_logo_url,
+              pp.website_url AS provider_website_url,
+              pp.verification_status AS provider_verification_status
        FROM apis a
        INNER JOIN categories c ON c.id = a.category_id
        LEFT JOIN provider_profiles pp ON pp.id = a.provider_profile_id
@@ -114,7 +116,9 @@ const getHomepageData = asyncHandler(async (req, res) => {
     ),
     pool.query(
       `SELECT a.*, c.name AS category_name, c.slug AS category_slug,
-              pp.slug AS provider_slug, pp.verification_status AS provider_verification_status
+              pp.slug AS provider_slug, pp.logo_url AS provider_logo_url,
+              pp.website_url AS provider_website_url,
+              pp.verification_status AS provider_verification_status
        FROM apis a
        INNER JOIN categories c ON c.id = a.category_id
        LEFT JOIN provider_profiles pp ON pp.id = a.provider_profile_id
@@ -126,7 +130,9 @@ const getHomepageData = asyncHandler(async (req, res) => {
       `SELECT sc.id AS campaign_id, sc.title AS campaign_title, sc.headline AS campaign_headline,
               sc.cta_label, ap.placement_type, ap.name AS package_name,
               a.*, c.name AS category_name, c.slug AS category_slug,
-              pp.slug AS provider_slug, pp.verification_status AS provider_verification_status
+              pp.slug AS provider_slug, pp.logo_url AS provider_logo_url,
+              pp.website_url AS provider_website_url,
+              pp.verification_status AS provider_verification_status
        FROM sponsored_campaigns sc
        INNER JOIN advertising_packages ap ON ap.id = sc.package_id
        INNER JOIN apis a ON a.id = sc.api_id
@@ -334,7 +340,9 @@ const listAndSearchApis = asyncHandler(async (req, res) => {
     ),
     pool.query(
       `SELECT a.*, c.name AS category_name, c.slug AS category_slug,
-              pp.slug AS provider_slug, pp.verification_status AS provider_verification_status,
+              pp.slug AS provider_slug, pp.logo_url AS provider_logo_url,
+              pp.website_url AS provider_website_url,
+              pp.verification_status AS provider_verification_status,
               ${selectRelevance}
        FROM apis a
        INNER JOIN categories c ON c.id = a.category_id
@@ -361,7 +369,9 @@ const listAndSearchApis = asyncHandler(async (req, res) => {
       `SELECT sc.id AS campaign_id, sc.title AS campaign_title, sc.headline AS campaign_headline,
               sc.cta_label, ap.placement_type, ap.name AS package_name,
               a.*, c.name AS category_name, c.slug AS category_slug,
-              pp.slug AS provider_slug, pp.verification_status AS provider_verification_status
+              pp.slug AS provider_slug, pp.logo_url AS provider_logo_url,
+              pp.website_url AS provider_website_url,
+              pp.verification_status AS provider_verification_status
        FROM sponsored_campaigns sc
        INNER JOIN advertising_packages ap ON ap.id = sc.package_id
        INNER JOIN apis a ON a.id = sc.api_id
@@ -946,7 +956,9 @@ const getRecommendations = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const [rows] = await pool.query(
     `SELECT a.*, c.name AS category_name, c.slug AS category_slug,
-            pp.slug AS provider_slug, pp.verification_status AS provider_verification_status
+            pp.slug AS provider_slug, pp.logo_url AS provider_logo_url,
+              pp.website_url AS provider_website_url,
+              pp.verification_status AS provider_verification_status
      FROM apis a
      INNER JOIN categories c ON c.id = a.category_id
      LEFT JOIN provider_profiles pp ON pp.id = a.provider_profile_id
