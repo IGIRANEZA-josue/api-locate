@@ -36,8 +36,17 @@ const bootLoading = ref(true);
 
 onMounted(async () => {
   themeStore.initTheme();
+  const authInitialization = authStore.initAuth();
   try {
-    await authStore.initAuth();
+    // Show the public pages promptly; do not make the directory wait for an
+    // optional backend session request to time out.
+    await Promise.race([
+      authInitialization,
+      new Promise((resolve) => window.setTimeout(resolve, 450))
+    ]);
+    bootLoading.value = false;
+
+    await authInitialization;
     if (authStore.isAuthenticated) {
       await workspaceStore.fetchFavorites();
       if (authStore.isPremium) {

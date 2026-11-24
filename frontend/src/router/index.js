@@ -103,7 +103,9 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
-  if (!authStore.initialized) {
+  // Public pages (including the local API preview catalog) must remain usable
+  // while the optional auth/backend service is offline.
+  if ((to.meta.requiresAuth || to.meta.guestOnly) && !authStore.initialized) {
     await authStore.initAuth();
   }
 

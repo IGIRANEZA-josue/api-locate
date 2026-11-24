@@ -183,8 +183,27 @@ export const FREE_API_CATEGORIES = [...new Map(FREE_API_CATALOG.map((api) => [ap
   api_count: FREE_API_CATALOG.filter((item) => item.category_slug === api.category_slug).length
 }])).values()];
 
+const FREE_API_ALIASES = {
+  'open-meteo': 'open-meteo-weather-api',
+  'open-meteo-weather-forecast-api': 'open-meteo-weather-api',
+  'rest-countries': 'rest-countries-api',
+  jsonplaceholder: 'jsonplaceholder-api',
+  'exchange-rates-api': 'frankfurter-exchange-rates-api',
+  'open-library': 'open-library-books-api'
+};
+
+const clickedApiCache = new Map();
+
+export function cacheApiListing(api) {
+  if (!api?.slug) return;
+  clickedApiCache.set(String(api.slug), { ...api, is_directory_preview: true });
+}
+
 export function findFreeApi(slug) {
-  return FREE_API_CATALOG.find((api) => api.slug === String(slug)) || null;
+  const normalizedSlug = String(slug);
+  if (clickedApiCache.has(normalizedSlug)) return clickedApiCache.get(normalizedSlug);
+  const canonicalSlug = FREE_API_ALIASES[normalizedSlug] || normalizedSlug;
+  return FREE_API_CATALOG.find((api) => api.slug === canonicalSlug) || null;
 }
 
 export function searchFreeApis(filters = {}) {

@@ -87,6 +87,7 @@
                       :key="`dev-${item.id}`"
                       :to="`/apis/${item.slug}`"
                       class="screen-api-pill"
+                      @click="cacheApiListing(item)"
                     >
                       <div class="screen-api-top">
                         <strong>{{ item.name }}</strong>
@@ -291,7 +292,7 @@ import { useAuthStore } from '../../stores/authStore';
 import ApiCard from '../../components/ApiCard.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { AUTH_LABELS, PRICING_LABELS } from '../../utils/formatters';
-import { FREE_API_CATALOG, FREE_API_CATEGORIES } from '../../data/freeApiCatalog';
+import { FREE_API_CATALOG, FREE_API_CATEGORIES, cacheApiListing } from '../../data/freeApiCatalog';
 
 const router = useRouter();
 const authStore = useAuthStore();
