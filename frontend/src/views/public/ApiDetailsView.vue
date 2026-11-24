@@ -10,6 +10,10 @@
 
     <template v-else-if="api">
       <!-- Top Breadcrumb -->
+      <div v-if="api.is_demo" class="alert alert-info" role="status">
+        This is a local free-API preview listing. It links to the provider’s official docs; favorites, reviews, and other saved actions need the API Locate backend.
+      </div>
+
       <div class="breadcrumb">
         <router-link to="/explore">Explore</router-link>
         <span>/</span>
@@ -40,7 +44,7 @@
       <section class="card details-hero">
         <div class="details-hero-left">
           <div class="hero-logo">
-            <img v-if="api.logo_url && !logoError" :src="api.logo_url" :alt="api.name" @error="logoError = true" />
+            <img v-if="detailLogoUrl && !logoError" :src="detailLogoUrl" :alt="`${api.provider_name || api.name} logo`" referrerpolicy="no-referrer" @error="logoError = true" />
             <span v-else>{{ getInitials(api.name) }}</span>
           </div>
 
@@ -101,7 +105,11 @@
 
         <!-- Developer Action Buttons -->
         <div class="details-actions">
+          <div v-if="api.is_demo" class="alert alert-info" style="margin: 0;">
+            Preview listing only; account actions are unavailable offline.
+          </div>
           <button
+            v-if="!api.is_demo"
             type="button"
             class="btn btn-secondary"
             @click="handleFavorite"
@@ -110,12 +118,13 @@
             <span>{{ isFavorited ? 'Saved' : 'Save favorite' }} ({{ api.favorites_count || 0 }})</span>
           </button>
 
-          <button type="button" class="btn btn-secondary" @click="openCollectionModal">
+          <button v-if="!api.is_demo" type="button" class="btn btn-secondary" @click="openCollectionModal">
             <AppIcon name="plus" :size="15" />
             <span>Add to collection</span>
           </button>
 
           <button
+            v-if="!api.is_demo"
             type="button"
             class="btn btn-secondary"
             @click="workspace.toggleCompare(api)"
@@ -133,7 +142,7 @@
               <AppIcon name="edit" :size="14" />
               <span>Edit</span>
             </router-link>
-            <button type="button" class="btn btn-ghost btn-sm" @click="openReportModal">
+            <button v-if="!api.is_demo" type="button" class="btn btn-ghost btn-sm" @click="openReportModal">
               <AppIcon name="flag" :size="14" />
               <span>Report issue</span>
             </button>
@@ -234,7 +243,7 @@
             </div>
 
             <!-- Authenticated Review Form -->
-            <form v-if="authStore.isAuthenticated" class="review-form" @submit.prevent="submitReview">
+            <form v-if="authStore.isAuthenticated && !api.is_demo" class="review-form" @submit.prevent="submitReview">
               <h4 style="margin-bottom: 0.65rem; font-size: 0.92rem;">Write or update your review</h4>
               <div class="grid-2">
                 <div class="form-group">
@@ -271,7 +280,8 @@
               </button>
             </form>
             <div v-else class="alert alert-info">
-              <router-link to="/login">Sign in</router-link> to rate and review this API.
+              <template v-if="api.is_demo">Reviews are enabled after connecting the API Locate backend.</template>
+              <template v-else><router-link to="/login">Sign in</router-link> to rate and review this API.</template>
             </div>
 
             <!-- Reviews List -->
@@ -451,6 +461,7 @@ import {
   formatDate,
   getInitials
 } from '../../utils/formatters';
+import { findFreeApi } from '../../data/freeApiCatalog';
 
 const route = useRoute();
 const router = useRouter();
@@ -463,6 +474,17 @@ const reviews = ref([]);
 const loading = ref(true);
 const errorMsg = ref('');
 const logoError = ref(false);
+const detailLogoUrl = computed(() => {
+  if (api.value?.logo_url) return api.value.logo_url;
+  try {
+    const website = api.value?.provider_website_url || api.value?.website_url;
+    if (!website) return '';
+    const host = new URL(website).hostname.replace(/^www\./, '');
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
+  } catch (_) {
+    return '';
+  }
+});
 const copied = ref(false);
 const savingReview = ref(false);
 const checkingStatus = ref(false);
@@ -491,14 +513,20 @@ const canEdit = computed(() => {
 });
 
 async function loadApiDetails() {
-  loading.value = true;
+  const previewApi = findFreeApi(route.params.slug);
+  logoError.value = false;
+  api.value = previewApi;
+  reviews.value = [];
   errorMsg.value = '';
+  loading.value = !previewApi;
   try {
     const { data } = await http.get(`/apis/${route.params.slug}`);
-    api.value = data.api;
-    reviews.value = data.api.reviews || [];
+    if (data.api) {
+      api.value = data.api;
+      reviews.value = data.api.reviews || [];
+    }
   } catch (err) {
-    errorMsg.value = extractErrorMessage(err, 'API listing could not be loaded.');
+    if (!previewApi) errorMsg.value = extractErrorMessage(err, 'API listing could not be loaded.');
   } finally {
     loading.value = false;
   }

@@ -5,7 +5,8 @@
         <span class="eyebrow">Directory Index</span>
         <h1 class="page-title" style="margin-top: 0.2rem;">API Categories</h1>
         <p class="page-subtitle">
-          Browse moderated APIs across {{ categories.length }} functional categories.
+          <template v-if="isPreviewCatalog">Browse {{ categories.length }} categories with free API examples.</template>
+          <template v-else>Browse moderated APIs across {{ categories.length }} functional categories.</template>
         </p>
       </div>
       <router-link to="/explore" class="btn btn-secondary btn-sm">
@@ -13,6 +14,9 @@
       </router-link>
     </div>
 
+    <div v-if="isPreviewCatalog" class="alert alert-info" role="status">
+      Free public API examples are shown in local preview mode until the API Locate backend is connected.
+    </div>
     <div v-if="loading" class="card">Loading categories...</div>
     <div v-else class="categories-index">
       <router-link
@@ -35,14 +39,21 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import http from '../../api/http';
+import { FREE_API_CATEGORIES } from '../../data/freeApiCatalog';
 
-const categories = ref([]);
-const loading = ref(true);
+const categories = ref(FREE_API_CATEGORIES);
+const loading = ref(false);
+const isPreviewCatalog = ref(true);
 
 onMounted(async () => {
   try {
     const { data } = await http.get('/categories');
-    categories.value = data.categories || [];
+    if (data.categories?.length) {
+      categories.value = data.categories;
+      isPreviewCatalog.value = false;
+    }
+  } catch (_) {
+    // Keep the categories represented by the local free-API preview.
   } finally {
     loading.value = false;
   }
