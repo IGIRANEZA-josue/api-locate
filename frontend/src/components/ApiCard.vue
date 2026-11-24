@@ -66,8 +66,9 @@
         type="button"
         class="fav-btn"
         :class="{ active: isFavorited }"
-        :title="isFavorited ? 'Remove saved API' : 'Save API'"
         :aria-label="isFavorited ? 'Remove saved API' : 'Save API'"
+        :disabled="api.is_demo"
+        :title="api.is_demo ? 'Preview listing — connect the backend to save APIs' : (isFavorited ? 'Remove saved API' : 'Save API')"
         @click="onFavoriteClick"
       >
         <AppIcon :name="isFavorited ? 'bookmark-solid' : 'bookmark'" :size="14" />
@@ -109,6 +110,8 @@
           type="button"
           class="btn btn-ghost btn-sm"
           :class="{ 'compare-selected': workspace.isInCompare(api.id) }"
+          :disabled="api.is_demo"
+          :title="api.is_demo ? 'Preview listing — connect the backend to compare APIs' : ''"
           @click="workspace.toggleCompare(api)"
         >
           {{ workspace.isInCompare(api.id) ? 'Comparing' : 'Compare' }}

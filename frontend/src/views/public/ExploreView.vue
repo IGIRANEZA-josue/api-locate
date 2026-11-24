@@ -5,7 +5,8 @@
         <span class="eyebrow">API Registry</span>
         <h1 class="page-title" style="margin-top: 0.25rem;">Directory</h1>
         <p class="page-subtitle">
-          Search across {{ pagination.total || 0 }} moderated developer APIs using full-text relevance and technical filters.
+          <template v-if="isPreviewCatalog">Browse {{ pagination.total }} free public API examples with no-key endpoints.</template>
+          <template v-else>Search across {{ pagination.total }} moderated developer APIs using full-text relevance and technical filters.</template>
         </p>
       </div>
 
@@ -156,6 +157,9 @@
 
       <!-- Main Results Column -->
       <div class="results-column">
+        <div v-if="isPreviewCatalog" class="alert alert-info" role="status">
+          Free API preview · showing public, no-key listings locally until the directory backend is connected.
+        </div>
         <!-- Explicitly Separated Sponsored Strip -->
         <div v-if="sponsored.length > 0 && pagination.page === 1" class="sponsored-strip">
           <div class="flex-between" style="margin-bottom: 0.65rem;">
@@ -226,24 +230,26 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import http, { extractErrorMessage } from '../../api/http';
+import http from '../../api/http';
 import { useAuthStore } from '../../stores/authStore';
-import { useToastStore } from '../../stores/toastStore';
 import ApiCard from '../../components/ApiCard.vue';
+import { FREE_API_CATALOG, FREE_API_CATEGORIES, FREE_API_TAGS, searchFreeApis } from '../../data/freeApiCatalog';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const toast = useToastStore();
 
-const categories = ref([]);
-const tags = ref([]);
-const apis = ref([]);
+const categories = ref(FREE_API_CATEGORIES);
+const tags = ref(FREE_API_TAGS);
+const apis = ref(FREE_API_CATALOG);
 const sponsored = ref([]);
-const loading = ref(true);
+const loading = ref(false);
 const mobileFiltersOpen = ref(false);
+const isPreviewCatalog = ref(true);
+const backendHasCatalog = ref(false);
+const hasLoadedOnce = ref(false);
 
-const pagination = ref({ page: 1, limit: 12, total: 0, total_pages: 1 });
+const pagination = ref({ page: 1, limit: 12, total: FREE_API_CATALOG.length, total_pages: 1 });
 
 const filters = reactive({
   q: '',
@@ -289,8 +295,23 @@ function syncFiltersFromRoute() {
   filters.page = Math.max(1, Number(route.query.page || 1));
 }
 
+function showLocalFreeApis() {
+  isPreviewCatalog.value = true;
+  const matches = searchFreeApis(filters);
+  const pageSize = pagination.value.limit;
+  const totalPages = Math.max(1, Math.ceil(matches.length / pageSize));
+  pagination.value = {
+    page: Math.min(filters.page, totalPages),
+    limit: pageSize,
+    total: matches.length,
+    total_pages: totalPages
+  };
+  apis.value = matches.slice((pagination.value.page - 1) * pageSize, pagination.value.page * pageSize);
+  sponsored.value = [];
+}
+
 async function fetchApis() {
-  loading.value = true;
+  loading.value = !hasLoadedOnce.value;
   try {
     const params = {
       page: filters.page,
@@ -311,12 +332,26 @@ async function fetchApis() {
     }
 
     const { data } = await http.get('/apis/search', { params });
-    apis.value = data.apis || [];
-    sponsored.value = data.sponsored || [];
-    pagination.value = data.pagination || pagination.value;
-  } catch (err) {
-    toast.error(extractErrorMessage(err));
+    const serverApis = data.apis || [];
+    if (serverApis.length || Number(data.pagination?.total || 0) > 0) {
+      backendHasCatalog.value = true;
+      isPreviewCatalog.value = false;
+      apis.value = serverApis;
+      sponsored.value = data.sponsored || [];
+      pagination.value = data.pagination || pagination.value;
+    } else if (!backendHasCatalog.value) {
+      showLocalFreeApis();
+    } else {
+      isPreviewCatalog.value = false;
+      apis.value = serverApis;
+      sponsored.value = data.sponsored || [];
+      pagination.value = data.pagination || pagination.value;
+    }
+  } catch (_) {
+    backendHasCatalog.value = false;
+    showLocalFreeApis();
   } finally {
+    hasLoadedOnce.value = true;
     loading.value = false;
   }
 }
@@ -381,13 +416,21 @@ watch(
 
 onMounted(async () => {
   syncFiltersFromRoute();
-  const [catRes, tagRes] = await Promise.all([
+  const [catResult, tagResult] = await Promise.allSettled([
     http.get('/categories'),
-    http.get('/tags'),
-    fetchApis()
+    http.get('/tags')
   ]);
-  categories.value = catRes.data.categories || [];
-  tags.value = tagRes.data.tags || [];
+  if (catResult.status === 'fulfilled') {
+    const serverCategories = catResult.value.data.categories || [];
+    if (serverCategories.length) {
+      categories.value = serverCategories;
+      backendHasCatalog.value = serverCategories.some((category) => Number(category.api_count || 0) > 0);
+    }
+  }
+  if (tagResult.status === 'fulfilled' && tagResult.value.data.tags?.length) {
+    tags.value = tagResult.value.data.tags;
+  }
+  await fetchApis();
 });
 </script>
 

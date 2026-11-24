@@ -78,7 +78,7 @@
                 <div class="screen-ui-content">
                   <div class="screen-glass-chip">
                     <AppIcon name="brand-arrows" :size="12" />
-                    <span>API Locate · {{ stats.approved_apis || 24 }} Verified Specs</span>
+                    <span>API Locate · {{ stats.approved_apis || 6 }} Directory APIs</span>
                   </div>
 
                   <div class="screen-cards-stack">
@@ -128,7 +128,7 @@
           <div class="editorial-pillar">
             <h3>Smart Spec Discovery</h3>
             <p>
-              Search, filter, and rank {{ stats.approved_apis || 24 }} moderated APIs by auth header,
+              Search, filter, and rank {{ stats.approved_apis || 6 }} APIs by auth header,
               pricing model, or CORS support with an interface that adapts to your workflow.
             </p>
           </div>
@@ -155,6 +155,9 @@
     <!-- 3. LIVE DIRECTORY SHOWCASE -->
     <section class="showcase-directory-section">
       <div class="container">
+        <div v-if="isPreviewCatalog" class="alert alert-info" role="status">
+          Showing free public API examples in preview mode. Connect the API Locate backend to load and manage your own directory.
+        </div>
         <div class="showcase-header">
           <div>
             <span class="eyebrow">Curated Specifications</span>
@@ -288,19 +291,21 @@ import { useAuthStore } from '../../stores/authStore';
 import ApiCard from '../../components/ApiCard.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { AUTH_LABELS, PRICING_LABELS } from '../../utils/formatters';
+import { FREE_API_CATALOG, FREE_API_CATEGORIES } from '../../data/freeApiCatalog';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const heroQuery = ref('');
 const heroPricing = ref('');
-const loading = ref(true);
+const loading = ref(false);
 const activeFeed = ref('featured');
+const isPreviewCatalog = ref(true);
 
-const stats = ref({});
-const categories = ref([]);
-const featuredApis = ref([]);
-const recentApis = ref([]);
+const stats = ref({ approved_apis: FREE_API_CATALOG.length });
+const categories = ref(FREE_API_CATEGORIES);
+const featuredApis = ref(FREE_API_CATALOG.slice(0, 6));
+const recentApis = ref(FREE_API_CATALOG.slice(0, 6));
 const sponsoredApis = ref([]);
 
 const devicePreviewApis = computed(() => {
@@ -342,11 +347,17 @@ function runHeroSearch() {
 onMounted(async () => {
   try {
     const { data } = await http.get('/apis/homepage');
-    stats.value = data.stats || {};
-    categories.value = data.categories || [];
-    featuredApis.value = data.featured_apis || [];
-    recentApis.value = data.recent_apis || [];
-    sponsoredApis.value = data.sponsored_apis || [];
+    const hasDirectoryData = (data.featured_apis || []).length || (data.recent_apis || []).length;
+    if (hasDirectoryData) {
+      isPreviewCatalog.value = false;
+      stats.value = data.stats || {};
+      categories.value = data.categories?.length ? data.categories : FREE_API_CATEGORIES;
+      featuredApis.value = data.featured_apis?.length ? data.featured_apis : data.recent_apis;
+      recentApis.value = data.recent_apis?.length ? data.recent_apis : data.featured_apis;
+      sponsoredApis.value = data.sponsored_apis || [];
+    }
+  } catch (_) {
+    // Keep the local free-API catalog visible when no backend is configured.
   } finally {
     loading.value = false;
   }
